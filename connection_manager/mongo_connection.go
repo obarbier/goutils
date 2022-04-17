@@ -29,6 +29,7 @@ func (c *MongoConnection) IsInitialized() bool {
 
 func (c *MongoConnection) LoadConfig(opts *options.ClientOptions) {
 	c.clientOptions = opts
+	c.initialized = true
 }
 func (c *MongoConnection) MakeClientOpts() (*options.ClientOptions, error) {
 	opts := options.MergeClientOptions()
