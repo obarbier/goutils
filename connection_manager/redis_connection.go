@@ -13,12 +13,17 @@ type RedisConnection struct {
 	Password      string
 	client        *redis.Client
 	clientOptions *redis.Options
-	Initialized   bool
+	initialized   bool
 	sync.Mutex
 }
 
 func (c *RedisConnection) IsInitialized() bool {
-	return c.Initialized
+	return c.initialized
+}
+
+func (c *RedisConnection) LoadConfig(opts *redis.Options) {
+	c.clientOptions = opts
+	c.initialized = true
 }
 
 func (c *RedisConnection) CreateClient(ctx context.Context) (client *redis.Client, err error) {
