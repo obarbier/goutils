@@ -1,4 +1,4 @@
-package mongo
+package connection_manager
 
 import (
 	"context"
@@ -10,25 +10,32 @@ import (
 	"time"
 )
 
-type Connection struct {
+type MongoConnection struct {
 	ConnectionURL string
 	Username      string
 	Password      string
 	client        *mongo.Client
 	clientOptions *options.ClientOptions
-	Initialized   bool
+	initialized   bool
 	sync.Mutex
 }
 
-func (c *Connection) LoadConfig(opts *options.ClientOptions) {
+// TODO: have single Connection Signature
+//var _ Connection = &MongoConnection{}
+
+func (c *MongoConnection) IsInitialized() bool {
+	return c.initialized
+}
+
+func (c *MongoConnection) LoadConfig(opts *options.ClientOptions) {
 	c.clientOptions = opts
 }
-func (c *Connection) MakeClientOpts() (*options.ClientOptions, error) {
+func (c *MongoConnection) MakeClientOpts() (*options.ClientOptions, error) {
 	opts := options.MergeClientOptions()
 	return opts, nil
 }
-func (c *Connection) CreateClient(ctx context.Context) (client *mongo.Client, err error) {
-	if !c.Initialized {
+func (c *MongoConnection) CreateClient(ctx context.Context) (client *mongo.Client, err error) {
+	if !c.IsInitialized() {
 		return nil, fmt.Errorf("failed to create client: connection producer is not initialized")
 	}
 	if c.clientOptions == nil {
@@ -42,7 +49,7 @@ func (c *Connection) CreateClient(ctx context.Context) (client *mongo.Client, er
 }
 
 // Close terminates the database connection.
-func (c *Connection) Close() error {
+func (c *MongoConnection) Close() error {
 	c.Lock()
 	defer c.Unlock()
 
@@ -59,7 +66,7 @@ func (c *Connection) Close() error {
 	return nil
 }
 
-func (c *Connection) VerifyConnection(ctx context.Context) error {
+func (c *MongoConnection) VerifyConnection(ctx context.Context) error {
 	client, err := c.CreateClient(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to verify connection: %w", err)
@@ -73,8 +80,8 @@ func (c *Connection) VerifyConnection(ctx context.Context) error {
 	return nil
 }
 
-func (c *Connection) Connection(ctx context.Context) (*mongo.Client, error) {
-	if !c.Initialized {
+func (c *MongoConnection) GetConnection(ctx context.Context) (*mongo.Client, error) {
+	if !c.IsInitialized() {
 		return nil, fmt.Errorf("database client is not initialized")
 	}
 
