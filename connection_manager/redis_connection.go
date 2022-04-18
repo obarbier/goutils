@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"sync"
+	"time"
 )
 
 type RedisConnection struct {
@@ -24,6 +25,25 @@ func (c *RedisConnection) IsInitialized() bool {
 func (c *RedisConnection) LoadConfig(opts *redis.Options) {
 	c.clientOptions = opts
 	c.initialized = true
+}
+
+// Close terminates the database connection.
+func (c *RedisConnection) Close() error {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.client != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
+		cn := c.client.Conn(ctx)
+		if err := cn.Close(); err != nil {
+			return err
+		}
+	}
+
+	c.client = nil
+
+	return nil
 }
 
 func (c *RedisConnection) CreateClient(ctx context.Context) (client *redis.Client, err error) {
